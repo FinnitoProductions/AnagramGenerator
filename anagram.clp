@@ -13,28 +13,9 @@
 
 (deftemplate Letter (slot c) (slot p))
 
-(bind ?WORD_REQUEST_MESSAGE "Enter the 8-letter word of which you would like to see all anagrams: ")
+(bind ?WORD_REQUEST_MESSAGE "Enter the word of which you would like to see all anagrams: ")
 (bind ?INVALID_INPUT_MESSAGE "Your input was invalid. Please try again.")
-(bind ?TOTAL_DESIRED_CHARACTERS 8)
-
-/* 
-* Generates all possible anagrams of a given set of asserted letters.
-*/
-(defrule anagramGenerator "Generate an anagram of a set of letters without duplicates"
-   (Letter (c ?l1)  (p ?p1)) 
-   (Letter (c ?l2)  (p ?p2 &~?p1)) 
-   (Letter (c ?l3)  (p ?p3 &~?p2 &~?p1)) 
-   (Letter (c ?l4)  (p ?p4 &~?p3 &~?p2 &~?p1)) 
-   (Letter (c ?l5)  (p ?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   (Letter (c ?l6)  (p ?p6 &~?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   (Letter (c ?l7)  (p ?p7 &~?p6 &~?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   (Letter (c ?l8)  (p ?p8 &~?p7 &~?p6 &~?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   ;(Letter (c ?l9)  (p ?p9 &~?p8 &~?p7 &~?p6 &~?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   ;(Letter (c ?l10) (p ?p10 &~?p9 &~?p8 &~?p7 &~?p6 &~?p5 &~?p4 &~?p3 &~?p2 &~?p1))
-   =>
-   (printout t ?l1 ?l2 ?l3 ?l4 ?l5 ?l6 ?l7 ?l8  " ")
-)
-
+(bind ?SYSTEM_ALLOWED_CHARACTERS 10)
 
 /*
 * Given a string ?letter and its initial position in the word ?position, asserts this letter using the above-defined Letter 
@@ -69,13 +50,13 @@
 )
 
 /*
-* Requests user input for a given word. If the word is valid (a string with length 8 characters and no whitespace), 
+* Requests user input for a given word. If the word is valid (a string with length less than 10 characters and no whitespace), 
 * returns the given word; if invalid, returns FALSE.
 */
 (deffunction requestValidatedWord ()
    (bind ?returnVal (askline ?WORD_REQUEST_MESSAGE))
 
-   (bind ?isValid (and (stringp ?returnVal) (= (str-length ?returnVal) ?TOTAL_DESIRED_CHARACTERS) (not (hasWhiteSpace ?returnVal))))
+   (bind ?isValid (and (stringp ?returnVal) (<= (str-length ?returnVal) ?SYSTEM_ALLOWED_CHARACTERS) (not (hasWhiteSpace ?returnVal))))
    (if (not ?isValid) then (bind ?returnVal FALSE)
    )
    
@@ -83,7 +64,7 @@
 )
 /*
 * Requests the user for a string and asserts each individual letter in it, with position ordered by location.
-* The word must be 8 characters long to be valid.
+* The word must be less than 11 characters long to be valid.
 */
 (deffunction askAndAssertString () 
    (bind ?userInput (requestValidatedWord))
@@ -93,7 +74,32 @@
       (bind ?userInput (requestValidatedWord))
    )
 
+   (createAnagramGenerator (str-length ?userInput))
    (return (assertStringChars ?userInput))
+)
+
+/*
+* Dynamically defines a rule to generate an anagram with a given number of letters not exceeding system capacity.
+*/
+(deffunction createAnagramGenerator (?numLetters)
+   (bind ?pattern "")
+   (bind ?action "(printout t")
+
+   (for (bind ?i 1) (<= ?i ?numLetters) (++ ?i)
+      (bind ?pattern (str-cat ?pattern "(Letter (c ?l" ?i ") (p ?p" ?i))
+
+      (for (bind ?j (- ?i 1)) (>= ?j 1) (-- ?j)
+         (bind ?pattern (str-cat ?pattern " &~?p" ?j))
+      )
+
+      (bind ?pattern (str-cat ?pattern ")) "))
+
+      (bind ?action (str-cat ?action " ?l" ?i))
+   )
+
+   (bind ?action (str-cat ?action " \" \" crlf)"))
+
+   (build (str-cat "(defrule dynamicAnagramGenerator " ?pattern " => " ?action ")"))
 )
 
 (askAndAssertString)
