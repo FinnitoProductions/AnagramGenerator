@@ -80,6 +80,17 @@
 
 /*
 * Dynamically defines a rule to generate an anagram with a given number of letters not exceeding system capacity.
+*
+* For example, a five-letter anagram generator rule would appear as follows:
+* (defrule dynamicAnagramGenerator 
+*    (Letter (c ?l1) (p ?p1)) 
+*    (Letter (c ?l2) (p ?p2 &~?p1)) 
+*    (Letter (c ?l3) (p ?p3 &~?p2 &~?p1)) 
+*    (Letter (c ?l4) (p ?p4 &~?p3 &~?p2 &~?p1)) 
+*    (Letter (c ?l5) (p ?p5 &~?p4 &~?p3 &~?p2 &~?p1))  
+*     => 
+*    (printout t ?l1 ?l2 ?l3 ?l4 ?l5 " " crlf)
+* )
 */
 (deffunction createAnagramGenerator (?numLetters)
    (bind ?pattern "")
@@ -99,7 +110,9 @@
 
    (bind ?action (str-cat ?action " \" \" crlf)"))
 
-   (build (str-cat "(defrule dynamicAnagramGenerator " ?pattern " => " ?action ")"))
+   (bind ?rule (str-cat "(defrule dynamicAnagramGenerator " ?pattern " => " ?action ")"))
+ 
+   (build ?rule)
 )
 
 (askAndAssertString)
